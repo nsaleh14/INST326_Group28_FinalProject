@@ -67,7 +67,7 @@ class Login:
         
         pass
     
-    def sign_up(self, input_username, input_password, registered_users):
+    def sign_up(self, input_username, input_password):
         '''
         This method will allow the user to create an account with a username and
         password so they can access the weather data in the future. It will store
@@ -75,8 +75,8 @@ class Login:
         '''
         self.registered_users = {}
         
-        if input_username not in registered_users:
-            registered_users[input_username] = input_password
+        if input_username not in self.registered_users:
+            self.registered_users[input_username] = input_password
             
         else:
             Login.sign_in
@@ -107,6 +107,37 @@ class Login:
         
         
         pass
+    
+    
+    def verify_user(self, input_username, input_password):
+        '''
+        This method will check the inputted username and password and verify if
+        they are inside the dictionary and if they match.
+        '''
+        self.registered_users = {"Bobby1": "Password1"}
+        
+        if input_username in self.registered_users:
+            Login.sign_in
+            
+        else:
+            #repeat ask input or ask if they need to create an account
+            
+            askinput = input("Username or Password invalid. Would you like to create an account or try again? (Input 'create' or 'try')")
+            
+            #try:
+                
+            #except: 
+            if askinput == "try":
+                Login.sign_up
+            else:
+                #repeat input
+                
+            
+      
+        
+        
+        pass
+    
     
 class Weather:
     '''
@@ -139,6 +170,8 @@ class Weather:
          Also check for valid input, use try/except within a while loop ?
          
         '''
+        
+        pass
     
     def get_forecast_data():
         '''Access an api with forecast data for today's date/the week.'''
@@ -159,11 +192,9 @@ class Weather:
         '''
         This method will retrieve the forecast data from the Weather API.
         '''
-        #https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/maryland/2000-01-01/2024-12-10?unitGroup=us&key=YOUR_API_KEY&contentType=json'
-        
+        #
         # or use Meteostat for historical data
         # weather.gov for forecast
-        # or api.met.no/weatherapi for forecast?
         
         resp = requests.get(f'')
         
@@ -200,6 +231,21 @@ def __main__(username, password):
     be able to input a specific date and get back the weather forecast 
     data for that date.
     '''
+    
+    #while True: #?
+        #try:
+            #Login.verify_user(username)
+            #break
+        #except: 
+        #     #? continue
+            
+            
+    #try:
+    #    Login.sign_up(username, password)
+    #except ValueError:
+    #    pass
+            
+    
     
     pass
     
