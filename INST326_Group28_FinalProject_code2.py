@@ -118,11 +118,54 @@ class Weather:
         
         pass
     
+    def get_user_input():
+        ''' Or would this go under the main()? or delete main()?
+        
+        Ask the user if they want past data or future//today's data.
+        Or use the datetime module to see if the date entered is today's date
+         or before today's date and get the corresponding data from the api
+         
+         but also ask after if user wants specific data such as temperature, etc.
+         or wants all the information.
+         If chose one, ask them again if they want
+         another thing or just continue to get the data, or figure out
+         how to get multiple user input for each information type at once.
+         Or just give them all information automatically.
+         
+         If gives past date, should they give a single date or a date range?
+         If single date, automatically give data for seven days from that date
+         including that date ?
+         
+         Also check for valid input, use try/except within a while loop ?
+         
+        '''
+    
+    def get_forecast_data():
+        '''Access an api with forecast data for today's date/the week.'''
+        
+        pass
+    
+    def get_past_data():
+        '''Access a different api for historical weather data.
+        
+        or just use the same api?
+        https://open-meteo.com/en/docs
+        
+        https://open-meteo.com/en/docs/historical-weather-api'''
+        
+        pass
+    
     def retrieve_data(self):
         '''
         This method will retrieve the forecast data from the Weather API.
         '''
-        resp = requests.get(f'https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/maryland/2000-01-01/2024-12-10?unitGroup=us&key=YOUR_API_KEY&contentType=json')
+        #https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/maryland/2000-01-01/2024-12-10?unitGroup=us&key=YOUR_API_KEY&contentType=json'
+        
+        # or use Meteostat for historical data
+        # weather.gov for forecast
+        # or api.met.no/weatherapi for forecast?
+        
+        resp = requests.get(f'')
         
         return(resp)
     
