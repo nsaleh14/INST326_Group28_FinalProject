@@ -80,6 +80,8 @@ class Login:
             
         else:
             Login.sign_in
+            
+        
         
         pass
     
@@ -231,6 +233,8 @@ def __main__(username, password):
     be able to input a specific date and get back the weather forecast 
     data for that date.
     '''
+    
+    Login.verify_user(username)
     
     #while True: #?
         #try:
