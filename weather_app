@@ -1,0 +1,225 @@
+import requests
+import json
+from datetime import datetime, timedelta
+
+
+class WeatherAPI:
+    """handles the interactions with OpenWeatherMap API for the needed weather data"""
+
+    def __init__(self, api_key):
+        """initializes the API with the provided API key."""
+
+        self.api_key = api_key
+        self.base_url = "https://api.openweathermap.org/data/3.0"
+
+    def get_weather(self, lat, lon, date):
+        """fetches weather data for a specific latitude, longitude, and date.
+
+        arguments:
+        lat(float): latitude of the location
+        lon(float): longitude of the location
+        date(str): the date in 'YYYY-MM-DD' format
+
+        returns:
+        dict: weather data or an error message"""
+        try:
+            date_obj = datetime.strptime(date, "%Y-%m-%d")
+            current_date = datetime.now()
+
+            if date_obj.date() == current_date.date():
+                endpoint = f"{self.base_url}/onecall"
+                params = {"lat": lat, "lon": lon, "appid": self.api_key, "units": "imperial"}
+            elif date_obj < current_date:
+                if date_obj < current_date - timedelta(days=7):
+                    endpoint = f"{self.base_url}/onecall/day_summary"
+                    params = {"lat": lat, "lon": lon, "date": date, "appid": self.api_key, "units": "imperial"}
+                else:
+                    endpoint = f"{self.base_url}/onecall/timemachine"
+                    params = {
+                        "lat": lat,
+                        "lon": lon,
+                        "dt": int(date_obj.timestamp()),
+                        "appid": self.api_key,
+                        "units": "imperial"
+                    }
+            elif date_obj <= current_date + timedelta(days=7):
+                endpoint = f"{self.base_url}/onecall"
+                params = {"lat": lat, "lon": lon, "appid": self.api_key, "units": "imperial"}
+            else:
+                return {"error": f"No forecast data available for {date}. Forecasts are only available up to 7 days in advance."}
+
+            response = requests.get(endpoint, params=params)
+            response.raise_for_status()
+            return response.json()
+
+        except requests.RequestException as e:
+            print(f"Error fetching weather data: {e}")
+            return None
+
+    def parse_weather_data(self, weather_data, date):
+        """parses and formats the weather data to be displayed
+
+        arguents:
+        weather_data(dict): raw weather data
+        date(str): date for the requested weather data
+
+        returns:
+        str: formatted weather information or an error message"""
+        try:
+            current_date = datetime.now()
+
+            formatted_date = current_date.strftime("%Y-%m-%d")
+
+
+            if len(weather_data) == 0:
+                return f"No weather data available for {date}."
+            elif "daily" in weather_data and formatted_date != date:
+                future_date = datetime.strptime(date, "%Y-%m-%d")
+
+                current_date = datetime.now()
+
+                print("future date", future_date)
+                print("current date", current_date)
+                days_in_future = (future_date - current_date).days
+                print("days in the future: ", days_in_future)
+                daily = weather_data["daily"][days_in_future + 1]
+                temp_min = daily["temp"]["min"]
+                temp_max = daily["temp"]["max"]
+                humidity = daily.get("humidity", "N/A")
+                wind_speed = daily.get("wind_speed", "N/A")
+            elif "current" in weather_data and formatted_date == date:
+                current = weather_data["current"]
+                temp = current.get("temp", None)
+                humidity = current.get("humidity", "N/A")
+                wind_speed = current.get("wind_speed", "N/A")
+            elif "temperature" in weather_data:
+                temp_min = weather_data["temperature"].get("min", "N/A")
+                temp_max = weather_data["temperature"].get("max", "N/A")
+                humidity = weather_data["humidity"].get("afternoon", "N/A")
+                wind_speed = weather_data["wind"]["max"].get("speed", "N/A")
+            else:
+                return f"No weather data available for {date}."
+
+            if "temp" in locals():
+                return (
+                    f"Weather on {date}:\n"
+                    f"- Temperature: {temp}ºF\n"
+                    f"- Humidity: {humidity}%\n"
+                    f"- Wind Speed: {wind_speed} mph"
+                )
+            else:
+                return (
+                    f"Weather on {date}:\n"
+                    f"- Temperature Low: {temp_min}ºF\n"
+                    f"- Temperature High: {temp_max}ºF\n"
+                    f"- Humidity: {humidity}%\n"
+                    f"- Wind Speed: {wind_speed} mph"
+                )
+        except KeyError as e:
+            return f"Error parsing weather data. Missing key: {e}"
+
+
+class UserInterface:
+    """manages user authentication and interactions for fetching the weather data"""
+
+    def __init__(self, api_key):
+        """initializes the UI with an API key and user data"""
+
+        self.weather_api = WeatherAPI(api_key)
+        self.users = {}
+
+    def sign_up(self):
+        """lets users create an account"""
+
+        username = input("Enter a new username: ")
+        if username in self.users:
+            print("Username already exists. Try signing in.")
+            return
+        password = input("Enter a new password: ")
+        self.users[username] = password
+        print("Sign-up successful! Please sign in.")
+
+    def sign_in(self):
+        """authenticates an existing user on a sign-in attempt"""
+
+        username = input("Enter your username: ")
+        password = input("Enter your password: ")
+        if self.users.get(username) == password:
+            print("Sign-in successful!")
+            return True
+        else:
+            print("Invalid credentials. Please try again.")
+            return False
+
+    def fetch_weather(self):
+        """prompts the user coordinates (latitude and longitude), and date, and fetches the weather data"""
+        try:
+            lat = float(input("Enter latitude: "))
+            lon = float(input("Enter longitude: "))
+            date = input("Enter date (YYYY-MM-DD): ")
+
+            if not self.validate_date(date):
+                print(
+                    "Invalid date. Please enter a date within the last 45 years or up to 7 days into the future."
+                )
+                return
+
+            weather_data = self.weather_api.get_weather(lat, lon, date)
+            if weather_data:
+                print(weather_data)
+                print(self.weather_api.parse_weather_data(weather_data, date))
+            else:
+                print("Failed to retrieve weather data.")
+        except ValueError:
+            print("Invalid latitude or longitude. Please try again.")
+
+    def validate_date(self, date):
+        """validates that the date is in the correct format and within a supported range.
+
+        arguments:
+        date(str): the date to validate
+
+        returns:
+        bool: True if the date is valid and False otherwise"""
+
+        try:
+            date_obj = datetime.strptime(date, "%Y-%m-%d")
+            min_date = datetime.now() - timedelta(days=45 * 365)
+            max_date = datetime.now() + timedelta(days=7)
+            return min_date <= date_obj <= max_date
+        except ValueError:
+            return False
+
+
+def main():
+    """main entry point for the weather application"""
+
+    api_key = "147b252829f2df2f360db79497da157e"
+    ui = UserInterface(api_key)
+
+    while True:
+        print("\n1. Sign Up\n2. Sign In\n3. Exit")
+        choice = input("Choose an option: ")
+        if choice == "1":
+            ui.sign_up()
+        elif choice == "2":
+            if ui.sign_in():
+                while True:
+                    print("\n1. Check Weather\n2. Log Out")
+                    sub_choice = input("Choose an option: ")
+                    if sub_choice == "1":
+                        ui.fetch_weather()
+                    elif sub_choice == "2":
+                        print("Logged out.")
+                        break
+                    else:
+                        print("Invalid choice. Please try again.")
+        elif choice == "3":
+            print("Goodbye!")
+            break
+        else:
+            print("Invalid choice. Please try again.")
+
+
+if __name__ == "__main__":
+    main()
