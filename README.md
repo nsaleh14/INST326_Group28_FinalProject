@@ -10,7 +10,7 @@ Weather App:
 This program is for a weather app using the api from openweathermap.org.
 
 The user will be able to create an account and sign in, then they will be able to acess weather data using latitude and longitude and the date they want data for.
-If a user wants past weather data for research, they can enter a past date, but if they just want the current forecast, they can enter the current date and get the forecast for seven days.
+If a user wants past weather data for research, they can enter a past date, but if they just want the current forecast, they can enter the current date and get the forecast for the week.
 
 
 Running the program:
@@ -37,7 +37,7 @@ After entering the latitude, you will be prompted to enter the longitude. Enter 
 
 This date is in the "YYYY-MM-DD" format, meaning year-month-day. Enter these as numbers. Example: 2017-06-24
 
-If your date is the current date, you will see printed output for a weather forecast of seven days from the date.
+If your date is the current date, you will see printed output for a weather forecast of the week (seven days).
 If your date is a date in the past, you will see weather data for that past date instead.
 
 After this output, you will be brought back to the output where the options are "1. Check Weather" and "2. Log Out". You can again choose either option by entering the numbers "1" or "2".
