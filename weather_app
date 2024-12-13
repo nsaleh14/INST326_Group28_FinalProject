@@ -63,19 +63,26 @@ class WeatherTest(unittest.TestCase):
 
 
 class WeatherAPI:
-    """Handles the interactions with OpenWeatherMap API for the needed weather data"""
+    """Handles the interactions with OpenWeatherMap API for the needed weather data
+    
+    Attributes:
+        api_key(str): Key for openweathermap's api
+        base_url(str): The first part of the url for openweathermap"""
 
     def __init__(self, api_key):
         """Initializes the API with the provided API key.
         
         Arguments:
-            api_key: The key for the API."""
+            api_key(str): The key for the API."""
 
         self.api_key = api_key
         self.base_url = "https://api.openweathermap.org/data/3.0"
 
     def get_weather(self, lat, lon, date):
         """Fetches weather data for a specific latitude, longitude, and date.
+        
+        If date is in current week, gets forecast data.
+        If it is in the past, gets historical weather data.
 
         Arguments:
             lat(float): latitude of the location
@@ -85,14 +92,15 @@ class WeatherAPI:
         Returns:
             dict: weather data or an error message"""
         try:
-            date_obj = datetime.strptime(date, "%Y-%m-%d")
-            current_date = datetime.now()
+            date_obj = datetime.strptime(date, "%Y-%m-%d") #Formats the inputted date
+            current_date = datetime.now() #Gets today's date
 
-            if date_obj.date() == current_date.date():
-                endpoint = f"{self.base_url}/onecall"
+            if date_obj.date() == current_date.date(): #Checks if user's input matches today's date
+                endpoint = f"{self.base_url}/onecall" #Endpoint = end of the url
+                #Parameters: lat = latitude, lon = longitude.
                 params = {"lat": lat, "lon": lon, "appid": self.api_key, "units": "imperial"}
-            elif date_obj < current_date:
-                if date_obj < current_date - timedelta(days=7):
+            elif date_obj < current_date: #If user's input less than today's date
+                if date_obj < current_date - timedelta(days=7): #If seven days less than today's date
                     endpoint = f"{self.base_url}/onecall/day_summary"
                     params = {"lat": lat, "lon": lon, "date": date, "appid": self.api_key, "units": "imperial"}
                 else:
@@ -104,13 +112,13 @@ class WeatherAPI:
                         "appid": self.api_key,
                         "units": "imperial"
                     }
-            elif date_obj <= current_date + timedelta(days=7):
+            elif date_obj <= current_date + timedelta(days=7): #If input less than/is today plus seven days in future
                 endpoint = f"{self.base_url}/onecall"
                 params = {"lat": lat, "lon": lon, "appid": self.api_key, "units": "imperial"}
             else:
                 return {"error": f"No forecast data available for {date}. Forecasts are only available up to 7 days in advance."}
 
-            response = requests.get(endpoint, params=params)
+            response = requests.get(endpoint, params=params) #Gets weather data from API
             response.raise_for_status()
             return response.json()
 
@@ -128,13 +136,12 @@ class WeatherAPI:
         Returns:
             str: formatted weather information or an error message"""
         try:
-            current_date = datetime.now()
-
+            current_date = datetime.now() #Gets today's date
             formatted_date = current_date.strftime("%Y-%m-%d")
 
             if len(weather_data) == 0:
                 return f"No weather data available for {date}."
-            elif "daily" in weather_data and formatted_date != date:
+            elif "daily" in weather_data and formatted_date != date: #Gets forecast data
                 future_date = datetime.strptime(date, "%Y-%m-%d")
 
                 current_date = datetime.now()
@@ -148,18 +155,18 @@ class WeatherAPI:
                 temp_max = daily["temp"]["max"]
                 humidity = daily.get("humidity", "N/A")
                 wind_speed = daily.get("wind_speed", "N/A")
-            elif "current" in weather_data and formatted_date == date:
+            elif "current" in weather_data and formatted_date == date: #Gets today's weather
                 current = weather_data["current"]
                 temp = current.get("temp", None)
                 humidity = current.get("humidity", "N/A")
                 wind_speed = current.get("wind_speed", "N/A")
-            elif "temperature" in weather_data:
+            elif "temperature" in weather_data: #Gets past weather data
                 temp_min = weather_data["temperature"].get("min", "N/A")
                 temp_max = weather_data["temperature"].get("max", "N/A")
                 humidity = weather_data["humidity"].get("afternoon", "N/A")
                 wind_speed = weather_data["wind"]["max"].get("speed", "N/A")
             else:
-                return f"No weather data available for {date}."
+                return f"No weather data available for {date}." #If date before 45 years too far in future
 
             if "temp" in locals(): #Also get precipitation?
                 return (
@@ -183,23 +190,32 @@ class WeatherAPI:
 class UserInterface:
     """Manages user authentication and interactions for fetching the weather data
     
+    Attributes:
+        api_key(string) : The API key used to access openweathermap's API.
+        weather_api(class object) : Uses a class to access the API with key
+        users(dict) : A dictionary for username and password pairs the user will input.
+    
     """
 
     def __init__(self, api_key):
         """Initializes the UI with an API key and user data"""
 
         self.weather_api = WeatherAPI(api_key)
-        self.users = {}
+        self.users = {} #Creates a dictionary for username and password pairs
 
     def sign_up(self):
-        """Lets users create an account"""
+        """Lets users create an account
+        
+        Prompts them to enter a username, then a password.
+        If username already exists, tells them to sign in.
+        Otherwise, adds the username and password pair to a dictionary."""
 
         username = input("Enter a new username: ")
-        if username in self.users:
+        if username in self.users: #Checks if username already exists in dictionary
             print("Username already exists. Try signing in.")
             return #Change the print to return?
         password = input("Enter a new password: ")
-        self.users[username] = password
+        self.users[username] = password #Adds input as key-value pair to dictionary
         print("Sign-up successful! Please sign in.")
 
     def sign_in(self):
@@ -212,7 +228,7 @@ class UserInterface:
             
         username = input("Enter your username: ")
         password = input("Enter your password: ")
-        if self.users.get(username) == password:
+        if self.users.get(username) == password: #Checks if they match in dictionary
             print("Sign-in successful!")
             return True
         else:
@@ -220,7 +236,9 @@ class UserInterface:
             return False
 
     def fetch_weather(self):
-        """Prompts the user coordinates (latitude and longitude), and date, and fetches the weather data"""
+        """Prompts the user coordinates (latitude and longitude), and date, and fetches the weather data
+        
+        Returns formatted weather data for user to see, or informs them of an error."""
         try:
             lat = float(input("Enter latitude: "))
             lon = float(input("Enter longitude: "))
@@ -235,6 +253,7 @@ class UserInterface:
             weather_data = self.weather_api.get_weather(lat, lon, date)
             if weather_data:
                 #print(weather_data)
+                #Outputs weather data in a user-friendly format:
                 print(self.weather_api.parse_weather_data(weather_data, date))
             else:
                 print("Failed to retrieve weather data.")
@@ -249,40 +268,48 @@ class UserInterface:
 
         Returns:
             bool: True if the date is valid and False otherwise"""
-
+            
         try:
-            date_obj = datetime.strptime(date, "%Y-%m-%d")
+            date_obj = datetime.strptime(date, "%Y-%m-%d") #Formats the inputted date
+            #Makes sure date is not more than 45 years ago:
             min_date = datetime.now() - timedelta(days=45 * 365)
+            #The most you can get for the weather forecast is 7 days in the future:
             max_date = datetime.now() + timedelta(days=7)
+            #Makes sure the inputted date is within the allowed range:
             return min_date <= date_obj <= max_date
         except ValueError:
-            return False
+            return False #Returns date as invalid
 
 
 def main():
-    """Main entry point for the weather application"""
-
-    api_key = "147b252829f2df2f360db79497da157e"
-    ui = UserInterface(api_key)
+    """Main entry point for the weather application.
+    Text will be printed for the user to see, then they will be
+     prompted for input several times and can eventually access weather data.
+    """
+    
+    api_key = "147b252829f2df2f360db79497da157e" #API key for openweathermap.org
+    ui = UserInterface(api_key) #Class object initializes the user interface
 
     while True:
         print("\n1. Sign Up\n2. Sign In\n3. Exit")
         choice = input("Choose an option: ")
-        if choice == "1":
+        if choice == "1": #Gets input from user and lets them sign up if input = "1"
             ui.sign_up()
-        elif choice == "2":
+        elif choice == "2": #Lets the user sign in if input = "2"
             if ui.sign_in():
+                #Keeps the user in the program to allow them to keep checking weather
+                # until they decide to log out and end the program:
                 while True:
                     print("\n1. Check Weather\n2. Log Out")
                     sub_choice = input("Choose an option: ")
-                    if sub_choice == "1":
+                    if sub_choice == "1": #If user enters "1", accesses api for weather data
                         ui.fetch_weather()
-                    elif sub_choice == "2":
+                    elif sub_choice == "2": #Ends the program if user enters "2"
                         print("Logged out.")
                         break
                     else:
                         print("Invalid choice. Please try again.")
-        elif choice == "3":
+        elif choice == "3": #Allows the user to exit without signing in/up
             print("Goodbye!")
             break
         else:
@@ -290,4 +317,5 @@ def main():
 
 
 if __name__ == "__main__":
+    '''Calls the main function to run the program and output.'''
     main()
