@@ -61,7 +61,9 @@ class WeatherTest(unittest.TestCase):
         
     @patch('requests.get')
     def test_get_weather_for_past_seven_days(self, mock_get):
-        
+        '''
+        Tests the get_weather method for a date in the past seven days
+        '''
         mock_response = Mock()
         mock_response.json.return_value = {"historical": "time machine weather data"}
         mock_response.raise_for_status = Mock()
@@ -89,7 +91,7 @@ class WeatherTest(unittest.TestCase):
     @patch('requests.get')
     def test_get_weather_for_historical_date(self, mock_get):
         '''
-        
+        Tests the get_weather method for a date farther than seven days in the past.
         '''
         #Creates a fake response mimicking from the API:
         mock_response = Mock()
@@ -117,7 +119,7 @@ class WeatherTest(unittest.TestCase):
     @patch('requests.get')
     def test_get_weather_for_future_seven_days(self, mock_get):
         '''
-        
+        Tests the get_weather method for within seven days in the future.
         '''
         #Creates a fake response mimicking from the API:
         mock_response = Mock()
@@ -140,7 +142,8 @@ class WeatherTest(unittest.TestCase):
         self.assertEqual(test_result, {"forecast": "future seven days data"})
         
     def test_get_weather_for_impossible_future_day(self):
-        
+        '''Tests the get weather method for beyond seven days in the future.
+        '''
         current_date = datetime.now().strftime("%Y-%m-%d")
         lat = 38.989697
         lon = -76.937759
@@ -154,6 +157,7 @@ class WeatherTest(unittest.TestCase):
     
     def test_get_weather_invalid_date_format(self):
         '''
+        Tests the get_weather method for an invalid date format.
         '''
         invalid_date = "80-D0-223"
         with self.assertRaises(ValueError):
@@ -161,6 +165,7 @@ class WeatherTest(unittest.TestCase):
             
     def test_get_weather_invalid_coordinates_format(self):
         '''
+        Tests the get_weather method with invalid latitude and longitude format.
         '''
         current_date = datetime.now().strftime("%Y-%m-%d")
         invalid_lat = "3809"
@@ -171,17 +176,17 @@ class WeatherTest(unittest.TestCase):
         
     
     def test_get_weather_api_request_error(self, mock_get):
-        '''Tests to get HTTP error from API response'''
+        '''Tests to get Request error from API response'''
         
         mock_response = Mock()
-        mock_response.raise_for_status.side_effect = requests.HTTPError("Error: API error..")
+        mock_response.raise_for_status.side_effect = requests.RequestException("Error: API error..")
         mock_get.return_value = mock_response
         
         current_date = datetime.now().strftime("%Y-%m-%d")
         lat = 38.989697
         lon = -76.937759
         
-        with self.assertRaises(requests.HTTPError):
+        with self.assertRaises(requests.RequestException):
             self.weather_api.get_weather(lat, lon, current_date)
         
     @patch('requests.get')
