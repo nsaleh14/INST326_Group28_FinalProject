@@ -27,7 +27,7 @@ class WeatherTest(unittest.TestCase):
     
     '''
     
-    def init_class(self):
+    def setUp(self):
         '''Initializes the necessary test attributes for the class.'''
         fake_api_key = "thisisfake20i9ei0920i"
         self.base_url = "https://api.openweathermap.org/data/3.0"
@@ -195,6 +195,12 @@ class WeatherTest(unittest.TestCase):
         Tests if the weather data has len = 0
         '''
         
+        no_weather_data = {}
+        
+        with self.assertRaises():
+            pass
+        
+        
         
         pass
     
@@ -239,7 +245,7 @@ class UserInterfaceTest(unittest.Testcase):
     '''
     This class is to perform unit tests for the UserInterface class.
     '''
-    def init_class():
+    def setUp():
         
         
         pass
