@@ -15,6 +15,7 @@ import requests
 import json #not being used ?
 from datetime import datetime, timedelta
 import unittest
+from unittest.mock import patch, Mock
 import time #Import to slow down requests to server ?
 
 
@@ -22,15 +23,183 @@ import time #Import to slow down requests to server ?
 
 class WeatherTest(unittest.TestCase):
     '''
-    This class is for performing unit tests for the Weather class.
+    This class is for performing unit tests for the WeatherAPI class.
     
     '''
     
-    def retrieve_data_test(self):
+    def init_class(self):
+        '''Initializes the necessary test attributes for the class.'''
+        fake_api_key = "thisisfake20i9ei0920i"
+        self.base_url = "https://api.openweathermap.org/data/3.0"
+        self.weather_api = WeatherAPI(fake_api_key)
+        
+    #@patch('module.class.method')
+    @patch('requests.get')
+    def get_weather_for_current_date_test(self, mock_get):
         '''
-        Tests if the weather data can actually be retrieved so that it will
-        be ready for parsing.
+        Tests the get_weather method using the current date.
+        
         '''
+        mock_response = Mock()
+        mock_response.json.return_value = {"current" : "today's weather data hm"}
+        mock_response.raise_for_status = Mock()
+        mock_get.return_value = mock_response
+        
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        lat = 38.989697
+        lon = -76.937759
+        
+        test_result = self.weather_api.get_weather(lat, lon, current_date)
+        
+        #params = self.weather_api().
+        mock_get.assert_called_once_with(f"{self.base_url}/onecall", 
+                                   params={"lat" : lat, "lon" : lon, "appid": self.weather_api.api_key, "units": "imperial"}
+                                   )
+        
+        self.assertEqual(test_result, {"current": "today's weather data hm"})
+        
+        
+    @patch('requests.get')
+    def test_get_weather_for_past_seven_days(self, mock_get):
+        
+        mock_response = Mock()
+        mock_response.json.return_value = {"historical": "time machine weather data"}
+        mock_response.raise_for_status = Mock()
+        mock_get.return_value = mock_response
+        
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        lat = 38.989697
+        lon = -76.937759
+        
+        past_date = (current_date - timedelta(days=4))
+        date_obj = datetime.strptime(past_date, "%Y-%m-%d")
+        
+        #Calls the method for testing:
+        test_result = self.weather_api.get_weather(lat, lon, past_date)
+        
+        mock_get.assert_called_once_with(f"{self.base_url}/onecall/timemachine",
+                                 params={"lat": lat, "lon": lon, "dt": int(date_obj.timestamp()), "appid": self.weather_api.api_key, "units": "imperial"}
+                                 )
+        
+        self.assertEqual(test_result, {"historical": "time machine weather data"})
+        
+        pass
+    
+    
+    @patch('requests.get')
+    def test_get_weather_for_historical_date(self, mock_get):
+        '''
+        
+        '''
+        #Creates a fake response mimicking from the API:
+        mock_response = Mock()
+        mock_response.json.return_value = {"historical": "summary data"}
+        mock_response.raise_for_status = Mock()
+        mock_get.return_value = mock_response
+        
+        
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        lat = 38.989697
+        lon = -76.937759
+        
+        past_date = (current_date - timedelta(days=14))
+        date_obj = datetime.strptime(past_date, "%Y-%m-%d")
+        
+        test_result = self.weather_api.get_weather(past_date, lat, lon)
+        
+        mock_get.assert_called_once_with(f"{self.base_url}/onecall/day_summary",
+                                         params={"lat": lat, "lon": lon, "date": past_date, "appid": self.weather_api.api_key, "units": "imperial"}
+                                         )
+        
+        self.assertEqual(test_result, {"historical": "summary_data"})
+        pass
+    
+    @patch('requests.get')
+    def test_get_weather_for_future_seven_days(self, mock_get):
+        '''
+        
+        '''
+        #Creates a fake response mimicking from the API:
+        mock_response = Mock()
+        mock_response.json.return_value = {"forecast": "future seven days data"}
+        mock_response.raise_for_status = Mock()
+        mock_get.return_value = mock_response
+        
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        lat = 38.989697
+        lon = -76.937759
+        
+        future_date = (current_date + timedelta(days=6))
+        
+        test_result = self.weather_api.get_weather(lat, lon, future_date)
+        
+        mock_get.assert_called_once_with(f"{"self.base_url"}/oncecall",
+                                         params={"lat": lat, "lon" : lon, "appid": self.weather_api.api_key, "units": "imperial"}
+                                         )
+        
+        self.assertEqual(test_result, {"forecast": "future seven days data"})
+        
+    def test_get_weather_for_impossible_future_day(self):
+        
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        lat = 38.989697
+        lon = -76.937759
+        
+        future_date = (current_date + timedelta(days=358)).strftime("%Y-%m-%d")
+        
+        test_result = self.weather_api.get_weather(lat, lon, future_date)
+        
+        self.assertEqual(test_result, {"error": f"No forecast data available for {future_date}. Forecasts are only available up to 7 days in advance."}
+                         )
+    
+    def test_get_weather_invalid_date_format(self):
+        '''
+        '''
+        invalid_date = "80-D0-223"
+        with self.assertRaises(ValueError):
+            self.weather_api.get_weather(invalid_date, 38.989697, -76.937759)
+            
+    def test_get_weather_invalid_coordinates_format(self):
+        '''
+        '''
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        invalid_lat = "3809"
+        invalid_lon = -76937759
+        with self.assertRaises(ValueError):
+            self.weather_api.get_weather(current_date, invalid_lat, invalid_lon)
+        
+        
+    
+    def test_get_weather_api_request_error(self, mock_get):
+        '''Tests to get HTTP error from API response'''
+        
+        mock_response = Mock()
+        mock_response.raise_for_status.side_effect = requests.HTTPError("Error: API error..")
+        mock_get.return_value = mock_response
+        
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        lat = 38.989697
+        lon = -76.937759
+        
+        with self.assertRaises(requests.HTTPError):
+            self.weather_api.get_weather(lat, lon, current_date)
+        
+    @patch('requests.get')
+    def test_parse_weather_data_if_missing(self):
+        '''
+        Tests if the weather data has len = 0
+        '''
+        
+        
+        pass
+    
+    def test_parse_weather_data_(self):
+        
+        
+        pass
+        
+    def test_parse_weather_data_(self):
+        
         pass
     
     def weather_value_test(self):
@@ -61,6 +230,16 @@ class WeatherTest(unittest.TestCase):
         pass
 
 
+class UserInterfaceTest(unittest.Testcase):
+    '''
+    This class is to perform unit tests for the UserInterface class.
+    '''
+    def init_class():
+        
+        
+        pass
+    
+    pass
 
 class WeatherAPI:
     """Handles the interactions with OpenWeatherMap API for the needed weather data
@@ -85,8 +264,8 @@ class WeatherAPI:
         If it is in the past, gets historical weather data.
 
         Arguments:
-            lat(float): latitude of the location
-            lon(float): longitude of the location
+            lat(float): latitude of the location inputted by the user
+            lon(float): longitude of the location inputted
             date(str): the date in 'YYYY-MM-DD' format
 
         Returns:
