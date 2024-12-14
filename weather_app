@@ -174,7 +174,7 @@ class WeatherTest(unittest.TestCase):
             self.weather_api.get_weather(current_date, invalid_lat, invalid_lon)
         
         
-    
+    @patch('requests.get')
     def test_get_weather_api_request_error(self, mock_get):
         '''Tests to get Request error from API response'''
         
@@ -189,24 +189,102 @@ class WeatherTest(unittest.TestCase):
         with self.assertRaises(requests.RequestException):
             self.weather_api.get_weather(lat, lon, current_date)
         
-    @patch('requests.get')
+   
     def test_parse_weather_data_if_missing(self):
         '''
-        Tests if the weather data has len = 0
+        Tests if the weather data has len = 0 with the parse_weather_data method
         '''
         
-        no_weather_data = {}
+        date = "2005-12-30"
+        empty_weather_data = {}
         
-        with self.assertRaises():
-            pass
+        test_result = self.weather_api.parse_weather_data(empty_weather_data, date)
         
-        
-        
-        pass
+        self.assertEqual(len(empty_weather_data), 0)
+        self.assertEqual(test_result, f"No weather data available for {date}.")
     
-    def test_parse_weather_data_(self):
+    
+    def test_parse_weather_data_if_daily_and_not_today(self):
+        '''
+        Test parse_weather_data method to see if parsed correctly.
+        for the first elif statement.
+        '''
+        
+        current_date = datetime.now()
+        formatted_date = current_date.strftime("%Y-%m-%d")
+        
+        future_date = (formatted_date + timedelta(days=4))
+        
+        mock_weather_data = {"daily" : {"temp" : {min : 50, max: 60}, "humidity" : 67, "wind_speed": 4}}
+        
+        test_result = self.weather_api.parse_weather_data(mock_weather_data, future_date)
+        
+        self.assertIn("Weather on", test_result)
+        self.assertIn("Temperature Low: 50ºF", test_result)
+        self.assertIn("Temperature High: 60ºF", test_result)
+        self.assertIn("Humidity: 67%", test_result)
+        self.assertIn("Wind Speed: 4%", test_result)
+        
+    @patch('datetime.datetime')
+    def test_parse_weather_data_if_current(self, mock_datetime):
+        '''
+        Tests the parse_weather_data method for the next elif, for the current date
+        And sees if it parses the data correctly.
+        '''
+        mock_current_date = datetime(2025, 6, 4)
+        mock_datetime.now.return_value = mock_current_date
+        mock_datetime.strptime = datetime.strptime
+        
+        mock_weather_data = {"current" : {"temp" : 40, "humidity" : 67, "wind_speed": 3}}
+        
+        current_date = mock_current_date.strftime("%Y-%m-%d")
+
+        test_result = self.weather_api.parse_weather_data(mock_weather_data, current_date)
+        
+        self.assertIn("Weather on", test_result)
+        self.assertIn("Temperature: 40ºF", test_result)
+        self.assertIn("Humidity: 67%", test_result)
+        self.assertIn("Wind Speed: 3 mph", test_result)
+        
+    @patch('datetime.datetime')
+    def test_parse_weather_data_if_temperature(self, mock_datetime):
+        '''Tests the parse_weather_data method for the next elif, if there
+            is 'temperature' in the weather_data, and checks if parsed correctly.'''
+        
+        mock_weather_data = {"current" : {"temp" : {min : 50, max: 60}, "humidity" : 67, "wind_speed": 3}}
+        
+        mock_current_date = datetime(2025, 6, 4)
+        mock_datetime.now.return_value = mock_current_date
+        mock_datetime.strptime = datetime.strptime
+        
+        past_date = "2025-6-1"
+        
+        test_result = self.weather_api.parse_weather_data(mock_weather_data, past_date)
+        
+        self.assertIn("Weather on", test_result)
+        self.assertIn("Temperature Low: 50ºF", test_result)
+        self.assertIn("Temperature High: 60ºF", test_result)
+        self.assertIn("Humidity: 67%", test_result)
+        self.assertIn("Wind Speed: 3 mph", test_result)
+    
+    def test_parse_weather_data_if_missing_data(self):
+        '''Test the else in the parse_weather_data method, if 
+        there is no weather data available.'''
+        
+        empty_weather_data = {"daily": {}}
+        
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        
+        test_result = self.weather_api.parse_weather_data(empty_weather_data, current_date)
+        
+        self.assertIn("No weather data available for", test_result)
         
         
+    def test_parse_weather_data_if_no_key(self):
+        
+        #except KeyError as e:
+        #    return f"Error parsing weather data. Missing key: {e}"
+
         pass
         
     def test_parse_weather_data_(self):
@@ -345,11 +423,13 @@ class WeatherAPI:
                 temp_max = daily["temp"]["max"]
                 humidity = daily.get("humidity", "N/A")
                 wind_speed = daily.get("wind_speed", "N/A")
+                
             elif "current" in weather_data and formatted_date == date: #Gets today's weather
                 current = weather_data["current"]
                 temp = current.get("temp", None)
                 humidity = current.get("humidity", "N/A")
                 wind_speed = current.get("wind_speed", "N/A")
+                
             elif "temperature" in weather_data: #Gets past weather data
                 temp_min = weather_data["temperature"].get("min", "N/A")
                 temp_max = weather_data["temperature"].get("max", "N/A")
