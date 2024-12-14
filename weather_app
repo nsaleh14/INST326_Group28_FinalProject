@@ -246,13 +246,14 @@ class WeatherTest(unittest.TestCase):
         self.assertIn("Humidity: 67%", test_result)
         self.assertIn("Wind Speed: 3 mph", test_result)
         
+        
     @patch('datetime.datetime')
     def test_parse_weather_data_if_temperature(self, mock_datetime):
         '''Tests the parse_weather_data method for the next elif, if there
             is 'temperature' in the weather_data, and checks if parsed correctly.'''
         
         mock_weather_data = {"current" : {"temp" : {min : 50, max: 60}, "humidity" : 67, "wind_speed": 3}}
-        
+        #Creates a fake current date to match with the fake data:
         mock_current_date = datetime(2025, 6, 4)
         mock_datetime.now.return_value = mock_current_date
         mock_datetime.strptime = datetime.strptime
@@ -281,54 +282,67 @@ class WeatherTest(unittest.TestCase):
         
         
     def test_parse_weather_data_if_no_key(self):
+        '''Test for parse_weather_data method if dictionary for weather data
+        is missing a key'''
+        one_key_weather_data = {"current": {"temp": 50, "wind_speed" : 6}}
         
-        #except KeyError as e:
-        #    return f"Error parsing weather data. Missing key: {e}"
-
-        pass
+        missing_key = {"humidity" : 67}
+        current_date = datetime.now().strftime("%Y-%m-%d")
         
-    def test_parse_weather_data_(self):
+        test_result = self.weather_api.parse_weather_data(one_key_weather_data, current_date)
         
-        pass
-    
-    def weather_value_test(self):
-        '''
-        Tests if the appropriate weather forecast data can be found
-        and that it is not None if it should have a value.
-        '''
-        pass
-    
-    def parsing_test(self):
-        '''
-        Tests to see if the weather data can be appropriately parsed
-        and returns an error if not.
-        '''
-        pass
-    
-    def convert_format_test(self):
-        '''
-        Tests to see if the data was properly converted to a specific format or not.
-        '''
-        pass
-    
-    def app_test(self):
-        '''
-        Tests to see if the unit tests are being tested properly and the whole app
-        script is working as it should.
-        '''
-        pass
-
-
+        self.assertIn(f"Error parsing weather data. Missing key: {missing_key}", test_result)
+        
 class UserInterfaceTest(unittest.Testcase):
     '''
     This class is to perform unit tests for the UserInterface class.
     '''
-    def setUp():
+    def setUp(self):
+        '''Initialize the original class's attributes and
+        creates instance of the class'''
+        fake_api_key = "thisisfake20i9ei0920i"
+        self.weather_api = WeatherAPI(fake_api_key)
+        self.users = {}
         
+        self.user_interface = UserInterface(fake_api_key)
         
-        pass
+    def test_validate_date_format(self):
+        '''Test the validate date method and see if it checks the format
+         of the date correctly.'''
+        date = "2023-7-26"
+        date_obj = datetime.strptime(date, "%Y-%m-%d")
+         
+        test_result = self.user_interface.validate_date(date_obj)
+         
+        self.assertTrue(test_result)
+        
+    def test_validate_date_min(self):
+        '''Test the validate date method for if the date is less than 45 years ago. '''
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        
+        test_result = self.user_interface.validate_date(current_date)
+        
+        self.assertTrue(test_result)
+    
+    def test_validate_date_max(self):
+        '''Test the validate date method for if the date is within 7 days in the future.'''
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        future_date = (current_date + timedelta(days = 4))
+        test_result = self.user_interface.validate_date(future_date)
+        
+        self.assertTrue(test_result)
+    
+    def test_validate_date_error(self):
+        '''Test the validate date method for if date is out of range'''
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        too_far_past_date = (current_date - timedelta(days = 46 * 365))
+        
+        test_result = self.user_interface.validate_date(too_far_past_date)
+        self.assertFalse(test_result)
     
     pass
+
+
 
 class WeatherAPI:
     """Handles the interactions with OpenWeatherMap API for the needed weather data
@@ -438,7 +452,7 @@ class WeatherAPI:
             else:
                 return f"No weather data available for {date}." #If date before 45 years too far in future
 
-            if "temp" in locals(): #Also get precipitation?
+            if "temp" in locals():
                 return (
                     f"Weather on {date}:\n"
                     f"- Temperature: {temp}ºF\n"
@@ -483,7 +497,7 @@ class UserInterface:
         username = input("Enter a new username: ")
         if username in self.users: #Checks if username already exists in dictionary
             print("Username already exists. Try signing in.")
-            return #Change the print to return?
+            return
         password = input("Enter a new password: ")
         self.users[username] = password #Adds input as key-value pair to dictionary
         print("Sign-up successful! Please sign in.")
@@ -494,7 +508,6 @@ class UserInterface:
         Returns:
             bool: True if user's password and username match, False if not
             """
-            #See if can/should combine sign in and sign up
             
         username = input("Enter your username: ")
         password = input("Enter your password: ")
